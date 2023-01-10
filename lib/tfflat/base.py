@@ -146,6 +146,7 @@ class Base(object):
     def load_weights(self, model=None):
 
         if model == 'last_epoch':
+            print("****************last****************")
             sfiles = os.path.join(self.cfg.model_dump_dir, 'snapshot_*.ckpt.meta')
             sfiles = glob.glob(sfiles)
             if len(sfiles) > 0:
@@ -157,15 +158,19 @@ class Base(object):
                 return
 
         if isinstance(model, int):
+            # print('snapshot_%d.ckpt' % model)
             model = os.path.join(self.cfg.model_dump_dir, 'snapshot_%d.ckpt' % model)
+            # print(model)
 
         if isinstance(model, str) and (osp.exists(model + '.meta') or osp.exists(model)):
+            print("****************str****************")
             self.logger.info('Initialized model weights from {} ...'.format(model))
             load_model(self.sess, model)
             if model.split('/')[-1].startswith('snapshot_'):
-                self.cur_epoch = int(model[model.find('snapshot_')+9:model.find('.ckpt')])
+                self.cur_epoch = int(model[model.find('snapshot_')+9:model.find('.ckpt')]) # 140 추출
                 self.logger.info('Current epoch is %d.' % self.cur_epoch)
         else:
+            print("****************else****************")
             self.logger.critical('Load nothing. There is no model in path {}.'.format(model))
 
     def next_feed(self):
@@ -273,20 +278,20 @@ class Trainer(Base):
         
         # saver
         self.logger.info('Initialize saver ...')
-        train_saver = Saver(self.sess, tf.global_variables(), self.cfg.model_dump_dir)
+        train_saver = Saver(self.sess, tf.global_variables(), self.cfg.model_dump_dir) # model_dump_dir = snapshot_140.ckpt
 
         # initialize weights
         self.logger.info('Initialize all variables ...')
         self.sess.run(tf.variables_initializer(tf.global_variables(), name='init'))
-        self.load_weights('last_epoch' if self.cfg.continue_train else self.cfg.init_model)
+        self.load_weights('last_epoch' if self.cfg.continue_train else self.cfg.init_model) # init_model = imagenet_weights pretrained resnet model
 
         self.logger.info('Start training ...')
-        start_itr = self.cur_epoch * self.itr_per_epoch + 1
-        end_itr = self.itr_per_epoch * self.cfg.end_epoch + 1
+        start_itr = self.cur_epoch * self.itr_per_epoch + 1 # 0*2341+1 == 1
+        end_itr = self.itr_per_epoch * self.cfg.end_epoch + 1 # 2341*140 + 1 == 327740
         for itr in range(start_itr, end_itr):
             self.tot_timer.tic()
 
-            self.cur_epoch = itr // self.itr_per_epoch
+            self.cur_epoch = itr // self.itr_per_epoch # 0 ~ 140
             setproctitle.setproctitle('train epoch:' + str(self.cur_epoch))
 
             # apply current learning policy
@@ -321,10 +326,10 @@ class Trainer(Base):
             
 
             #TODO(display stall?)
-            if itr % self.cfg.display == 0:
+            if itr % self.cfg.display == 0: # display == 1 로 설정되어 있어서 항상 수행되고 있음
                 self.logger.info(' '.join(screen))
 
-            if itr % self.itr_per_epoch == 0:
+            if itr % self.itr_per_epoch == 0 and (itr // self.itr_per_epoch) % 10 == 0: # 10 epoch 주기로 ckpt 저장하도록 수정 
                 train_saver.save_model(self.cur_epoch)
 
             self.tot_timer.toc()

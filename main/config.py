@@ -1,31 +1,47 @@
+from asyncio import FastChildWatcher
 import os
 import os.path as osp
 import sys
+from tokenize import Triple
 import numpy as np
 
 class Config:
     
     ## dataset
-    dataset = 'COCO' # 'COCO', 'PoseTrack', 'MPII'
+    dataset = 'COCO' # 'COCO', 'PoseTrack', 'MPII', 'Soccer'
     testset = 'val' # train, test, val (there is no validation set for MPII)
 
+    ## backbone
+    backbone = 'resnet50' # 'resnet50', 'resnet101', 'resnet152'
+    
+    ## setting the location of vis and result files 
+    bitrate = 0.5
+    quality = 200
+    mode = 'module'
+    num_epoch = 140
+
+
+    #sakldj
     ## directory
     cur_dir = osp.dirname(os.path.abspath(__file__))
     root_dir = osp.join(cur_dir, '..')
+    rroot_dir = osp.join(cur_dir, '../../../..')
     data_dir = osp.join(root_dir, 'data')
     output_dir = osp.join(root_dir, 'output')
-    model_dump_dir = osp.join(output_dir, 'model_dump', dataset)
-    vis_dir = osp.join(output_dir, 'vis', dataset)
+    model_dump_dir = osp.join(output_dir, 'model_dump', dataset, backbone)
+    vis_dir = osp.join(output_dir, 'vis', dataset, backbone, mode+str(quality)+'_'+str(num_epoch))
     log_dir = osp.join(output_dir, 'log', dataset)
-    result_dir = osp.join(output_dir, 'result', dataset)
+    result_dir = osp.join(output_dir, 'result', dataset, backbone, mode+str(quality)+'_'+str(num_epoch))
+    blur_dir = osp.join(rroot_dir, 'data1', dataset, 'images', 'val2017_btt')
+    patch_dir = osp.join(rroot_dir, 'data1', dataset, 'images', 'val2017_patch')
+    # soccer_dir = osp.join(output_dir, 'soccer', 'ex5.0')
  
     ## model setting
-    backbone = 'resnet50' # 'resnet50', 'resnet101', 'resnet152'
     init_model = osp.join(data_dir, 'imagenet_weights', 'resnet_v1_' + backbone[6:] + '.ckpt')
     
     ## input, output
     input_shape = (256, 192) # (256,192), (384,288)
-    output_shape = (input_shape[0]//4, input_shape[1]//4)
+    output_shape = (input_shape[0]//4, input_shape[1]//4) # (64, 48)
     if output_shape[0] == 64:
         sigma = 2
     elif output_shape[0] == 96:
@@ -34,18 +50,18 @@ class Config:
 
     ## training config
     lr_dec_epoch = [90, 120]
-    end_epoch = 140
+    end_epoch = 900
     lr = 5e-4
     lr_dec_factor = 10
     optimizer = 'adam'
     weight_decay = 1e-5
     bn_train = True
-    batch_size = 32
+    batch_size = 16
     scale_factor = 0.3
     rotation_factor = 40
 
     ## testing config
-    useGTbbox = False
+    useGTbbox = True
     flip_test = True
     oks_nms_thr = 0.9
     score_thr = 0.2
@@ -58,7 +74,43 @@ class Config:
     num_gpus = 1
     continue_train = False
     display = 1
-    
+
+    ## visualization
+    vis_total = False
+    vis_each = False
+
+    ## debug
+    d1 = False
+    d2 = False
+    d3 = False
+    d4 = False
+
+    ## case analysis
+    c1 = False
+    c2 = False
+    c3 = False
+
+    ## make blur
+    makeblur = False
+
+    ## make human patch
+    makepatch = False
+    pid = 0
+    pid2 = 0
+
+    ## patch test mode
+    patch = False
+
+    ## latency  
+    ltc_each = False
+    ltc_total = False
+
+    ## flag for evaluating metrics of each image
+    each = False
+
+    ## flag for oks version
+    oks = False
+
     ## helper functions
     def get_lr(self, epoch):
         for e in self.lr_dec_epoch:
